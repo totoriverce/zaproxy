@@ -5,7 +5,7 @@ FROM --platform=linux/amd64 debian:bookworm-slim AS builder
 RUN apt-get update && apt-get install -q -y --fix-missing \
 	wget \
 	curl \
-	openjdk-11-jdk \
+	openjdk-17-jdk \
 	xmlstarlet \
 	unzip && \
 	rm -rf /var/lib/apt/lists/*
@@ -44,7 +44,7 @@ RUN apt-get update && apt-get install -q -y --fix-missing \
 	automake \
 	autoconf \
 	gcc g++ \
-	openjdk-11-jdk \
+	openjdk-17-jdk \
 	wget \
 	curl \
 	xmlstarlet \
@@ -79,7 +79,7 @@ COPY --link --from=builder --chown=1000:1000 /zap .
 COPY --link --from=builder --chown=1000:1000 /zap/webswing /zap/webswing
 
 ARG TARGETARCH
-ENV JAVA_HOME /usr/lib/jvm/java-11-openjdk-$TARGETARCH
+ENV JAVA_HOME /usr/lib/jvm/java-17-openjdk-$TARGETARCH
 ENV PATH $JAVA_HOME/bin:/zap/:$PATH
 ENV ZAP_PATH /zap/zap.sh
 
