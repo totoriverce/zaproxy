@@ -1,9 +1,6 @@
 # Changelog
 All notable changes to the docker containers will be documented in this file.
 
-### 2023-11-15
- - Changed all images to use debian:bookworm-slim instead of bullseye-slim.
-
 ### 2023-10-30
 - Add the ZAP client profile to stable, weekly, and live images.
 
