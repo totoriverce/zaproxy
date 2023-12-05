@@ -87,7 +87,16 @@ RUN apt-get update && apt-get install -q -y --fix-missing \
 	mkdir /zap  && \
 	chown zap:zap /zap
 
-RUN pip3 install --no-cache-dir --upgrade awscli pip zaproxy pyyaml requests urllib3
+RUN pip3 install \
+	--break-system-packages \
+	--no-cache-dir \
+	--upgrade \
+	awscli \
+	pip \
+	zaproxy \
+	pyyaml \
+	requests \
+	urllib3
 
 #Change to the zap user so things get done as the right person (apart from copy)
 USER zap
