@@ -14,10 +14,14 @@ RUN apt-get update && apt-get install -q -y --fix-missing \
 
 RUN mkdir -p /etc/apt/keyrings && \
 	curl -s https://packages.adoptium.net/artifactory/api/gpg/key/public > /etc/apt/keyrings/adoptium.asc && \
-	echo "deb [signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/adoptium.list && \
-	apt-get update && \
-	apt-get install -q -y --fix-missing temurin-11-jdk && \
+	echo "deb [signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/adoptium.list
+
+RUN apt-get update && apt-get install -q -y --fix-missing \
+	temurin-11-jdk \
+	java-common && \
 	rm -rf /var/lib/apt/lists/*
+
+RUN update-java-alternatives -v -s temurin-11-jdk-amd64
 
 WORKDIR /zap-src
 
@@ -46,13 +50,25 @@ LABEL maintainer="psiinon@gmail.com"
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -q -y --fix-missing \
+	curl
+
+RUN mkdir -p /etc/apt/keyrings && \
+	curl -s https://packages.adoptium.net/artifactory/api/gpg/key/public > /etc/apt/keyrings/adoptium.asc && \
+	echo "deb [signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/adoptium.list
+
+RUN apt-get update && apt-get install -q -y --fix-missing \
+	temurin-11-jdk \
+	java-common
+
+RUN update-java-alternatives -v -s temurin-11-jdk-amd64
+
+RUN apt-get update && apt-get install -q -y --fix-missing \
 	make \
 	ant \
 	automake \
 	autoconf \
 	gcc g++ \
 	wget \
-	curl \
 	xmlstarlet \
 	unzip \
 	git \
@@ -70,13 +86,6 @@ RUN apt-get update && apt-get install -q -y --fix-missing \
 	echo zap:zap | chpasswd && \
 	mkdir /zap  && \
 	chown zap:zap /zap
-
-RUN mkdir -p /etc/apt/keyrings && \
-	curl -s https://packages.adoptium.net/artifactory/api/gpg/key/public > /etc/apt/keyrings/adoptium.asc && \
-	echo "deb [signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/adoptium.list && \
-	apt-get update && \
-	apt-get install -q -y --fix-missing temurin-11-jdk && \
-	rm -rf /var/lib/apt/lists/*
 
 RUN pip3 install --no-cache-dir --upgrade awscli pip zaproxy pyyaml requests urllib3
 
