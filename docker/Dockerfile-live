@@ -51,7 +51,6 @@ RUN apt-get update && apt-get install -q -y --fix-missing \
 	automake \
 	autoconf \
 	gcc g++ \
-	openjdk-11-jdk \
 	wget \
 	curl \
 	xmlstarlet \
