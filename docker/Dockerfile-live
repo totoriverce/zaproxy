@@ -8,9 +8,7 @@ RUN apt-get update && apt-get install -q -y --fix-missing \
 	wget \
 	curl \
 	unzip \
-	git && \
-	rm -rf /var/lib/apt/lists/* && \
-	mkdir /zap-src
+	git
 
 RUN mkdir -p /etc/apt/keyrings && \
 	curl -s https://packages.adoptium.net/artifactory/api/gpg/key/public > /etc/apt/keyrings/adoptium.asc && \
@@ -18,17 +16,24 @@ RUN mkdir -p /etc/apt/keyrings && \
 
 RUN apt-get update && apt-get install -q -y --fix-missing \
 	temurin-11-jdk \
-	java-common && \
-	rm -rf /var/lib/apt/lists/*
+	java-common
 
+# Set java binaries in /usr/bin to the correct java install
 RUN update-java-alternatives -v -s temurin-11-jdk-amd64
+
+# Cleanup apt cache to save space
+RUN rm -rf /var/lib/apt/lists/*
+
+RUN mkdir /zap-src
 
 WORKDIR /zap-src
 
 # Pull the ZAP repo and build ZAP with weekly add-ons
-RUN git clone --depth 1 https://github.com/zaproxy/zaproxy.git && \
-	cd zaproxy && \
-	ZAP_WEEKLY_ADDONS_NO_TEST=true ./gradlew :zap:prepareDistWeekly
+RUN rm -rf zaproxy && git clone --depth 1 https://github.com/zaproxy/zaproxy.git
+
+WORKDIR /zap-src/zaproxy
+
+RUN ZAP_WEEKLY_ADDONS_NO_TEST=true ./gradlew :zap:prepareDistWeekly
 
 WORKDIR /zap
 
