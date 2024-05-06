@@ -68,6 +68,7 @@ import org.zaproxy.zap.extension.XmlReporterExtension;
 import org.zaproxy.zap.extension.help.ExtensionHelp;
 import org.zaproxy.zap.model.SessionStructure;
 import org.zaproxy.zap.model.Target;
+import org.zaproxy.zap.view.popup.MenuWeights;
 
 public class ExtensionAlert extends ExtensionAdaptor
         implements SessionChangedListener, XmlReporterExtension, OptionsChangedListener {
@@ -184,11 +185,20 @@ public class ExtensionAlert extends ExtensionAdaptor
                 ref = alert.getHistoryRef();
             }
             if (ref == null) {
-                ref =
-                        new HistoryReference(
-                                getModel().getSession(),
-                                HistoryReference.TYPE_SCANNER,
-                                alert.getMessage());
+                ref = createHistoryReference(HistoryReference.TYPE_SCANNER, alert.getMessage());
+                alert.setHistoryRef(ref);
+            } else if (HistoryReference.getTemporaryTypes().contains(ref.getHistoryType())) {
+                int tempType = ref.getHistoryType();
+                int permanentType = getPermanentType(tempType);
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "Attempting to create an alert for temporary message {}, type will be changed to permanent: {}",
+                            tempType,
+                            permanentType,
+                            new Exception());
+                }
+
+                ref = createHistoryReference(permanentType, alert.getMessage());
                 alert.setHistoryRef(ref);
             }
 
@@ -247,6 +257,34 @@ public class ExtensionAlert extends ExtensionAdaptor
             return true;
         }
         return false;
+    }
+
+    private HistoryReference createHistoryReference(int historyType, HttpMessage message)
+            throws HttpMalformedHeaderException, DatabaseException {
+        return new HistoryReference(getModel().getSession(), historyType, message);
+    }
+
+    private static int getPermanentType(int historyType) {
+        switch (historyType) {
+            case HistoryReference.TYPE_TEMPORARY:
+                return HistoryReference.TYPE_ZAP_USER;
+            case HistoryReference.TYPE_SCANNER_TEMPORARY:
+                return HistoryReference.TYPE_SCANNER;
+            case HistoryReference.TYPE_AUTHENTICATION:
+                return HistoryReference.TYPE_ZAP_USER;
+            case HistoryReference.TYPE_SPIDER_TASK:
+                return HistoryReference.TYPE_SPIDER;
+            case HistoryReference.TYPE_SEQUENCE_TEMPORARY:
+                return HistoryReference.TYPE_ZAP_USER;
+            case HistoryReference.TYPE_SPIDER_AJAX_TEMPORARY:
+                return HistoryReference.TYPE_SPIDER_AJAX;
+            case HistoryReference.TYPE_SPIDER_TEMPORARY:
+                return HistoryReference.TYPE_SPIDER;
+            case HistoryReference.TYPE_FUZZER_TEMPORARY:
+                return HistoryReference.TYPE_FUZZER;
+            default:
+                return HistoryReference.TYPE_SCANNER;
+        }
     }
 
     /*
@@ -326,6 +364,7 @@ public class ExtensionAlert extends ExtensionAdaptor
                 AlertEventPublisher.HISTORY_REFERENCE_ID,
                 Integer.toString(alert.getSourceHistoryId()));
         map.put(AlertEventPublisher.NAME, alert.getName());
+        map.put(AlertEventPublisher.PLUGIN_ID, Integer.toString(alert.getPluginId()));
         map.put(AlertEventPublisher.URI, alert.getUri().toString());
         map.put(AlertEventPublisher.PARAM, alert.getParam());
         map.put(AlertEventPublisher.RISK, Integer.toString(alert.getRisk()));
@@ -642,6 +681,7 @@ public class ExtensionAlert extends ExtensionAdaptor
         if (popupMenuAlertAdd == null) {
             popupMenuAlertAdd =
                     new PopupMenuAlert(Constant.messages.getString("alert.add.popup"), this);
+            popupMenuAlertAdd.setWeight(MenuWeights.MENU_NEW_ALERT_WEIGHT);
         }
         return popupMenuAlertAdd;
     }
@@ -678,6 +718,7 @@ public class ExtensionAlert extends ExtensionAdaptor
         if (popupMenuShowAlerts == null) {
             popupMenuShowAlerts =
                     new PopupMenuShowAlerts(Constant.messages.getString("alerts.view.popup"), this);
+            popupMenuShowAlerts.setWeight(MenuWeights.MENU_ALERTS_NODE_WEIGHT);
         }
         return popupMenuShowAlerts;
     }

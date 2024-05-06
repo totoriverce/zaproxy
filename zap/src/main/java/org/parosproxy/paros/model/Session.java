@@ -94,6 +94,7 @@
 // ZAP: 2023/01/10 Tidy up logger.
 // ZAP: 2023/05/21 Allow context import functionality to accept an XML config as input (Issue 7421).
 // ZAP: 2023/06/02 Allow to set the global exclude URLs.
+// ZAP: 2024/01/19 Use the non-regex hierarchic name of a node to check if it is in scope.
 package org.parosproxy.paros.model;
 
 import java.awt.EventQueue;
@@ -344,19 +345,19 @@ public class Session {
 
         // Load the session urls
         this.setExcludeFromProxyRegexs(
-                sessionUrlListToStingList(
+                sessionUrlListToStringList(
                         model.getDb()
                                 .getTableSessionUrl()
                                 .getUrlsForType(RecordSessionUrl.TYPE_EXCLUDE_FROM_PROXY)));
 
         this.setExcludeFromScanRegexs(
-                sessionUrlListToStingList(
+                sessionUrlListToStringList(
                         model.getDb()
                                 .getTableSessionUrl()
                                 .getUrlsForType(RecordSessionUrl.TYPE_EXCLUDE_FROM_SCAN)));
 
         this.setExcludeFromSpiderRegexs(
-                sessionUrlListToStingList(
+                sessionUrlListToStringList(
                         model.getDb()
                                 .getTableSessionUrl()
                                 .getUrlsForType(RecordSessionUrl.TYPE_EXCLUDE_FROM_SPIDER)));
@@ -582,7 +583,7 @@ public class Session {
         return true;
     }
 
-    private List<String> sessionUrlListToStingList(List<RecordSessionUrl> rsuList) {
+    private List<String> sessionUrlListToStringList(List<RecordSessionUrl> rsuList) {
         List<String> urlList = new ArrayList<>(rsuList.size());
         for (RecordSessionUrl url : rsuList) {
             urlList.add(url.getUrl());
@@ -839,7 +840,7 @@ public class Session {
         if (sn == null) {
             return false;
         }
-        return isIncludedInScope(sn.getHierarchicNodeName());
+        return isIncludedInScope(sn.getHierarchicNodeName(false));
     }
 
     private boolean isIncludedInScope(String url) {
@@ -862,7 +863,7 @@ public class Session {
         if (sn == null) {
             return false;
         }
-        return isExcludedFromScope(sn.getHierarchicNodeName());
+        return isExcludedFromScope(sn.getHierarchicNodeName(false));
     }
 
     private boolean isExcludedFromScope(String url) {
@@ -900,7 +901,7 @@ public class Session {
         if (sn == null) {
             return false;
         }
-        return isInScope(sn.getHierarchicNodeName());
+        return isInScope(sn.getHierarchicNodeName(false));
     }
 
     public boolean isInScope(String url) {
@@ -1442,7 +1443,7 @@ public class Session {
         if (sn == null) {
             return new ArrayList<>();
         }
-        return getContextsForUrl(sn.getHierarchicNodeName());
+        return getContextsForUrl(sn.getHierarchicNodeName(false));
     }
 
     public List<Context> getContextsForUrl(String url) {

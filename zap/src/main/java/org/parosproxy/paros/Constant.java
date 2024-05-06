@@ -124,12 +124,14 @@
 // ZAP: 2023/08/21 Deprecate vulnerabilities constants.
 // ZAP: 2023/08/28 Update paths in config file to match the renamed home dir.
 // ZAP: 2023/09/14 Lock home directory.
+// ZAP: 2024/04/25 Add new autoTagScanner regex patterns when upgrading from 2.14 or earlier.
 package org.parosproxy.paros;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.channels.FileChannel;
@@ -204,9 +206,10 @@ public final class Constant {
     private static final String VERSION_ELEMENT = "version";
 
     // Accessible for tests
-    static final long VERSION_TAG = 20014000;
+    static final long VERSION_TAG = 20015000;
 
     // Old version numbers - for upgrade
+    private static final long V_2_14_0_TAG = 20014000;
     private static final long V_2_12_0_TAG = 20012000;
     private static final long V_2_11_1_TAG = 20011001;
     private static final long V_2_9_0_TAG = 2009000;
@@ -753,6 +756,9 @@ public final class Constant {
                     if (ver <= V_2_12_0_TAG) {
                         upgradeFrom2_12(config);
                     }
+                    if (ver <= V_2_14_0_TAG) {
+                        upgradeFrom2_14_0(config);
+                    }
 
                     // Execute always to pick installer choices.
                     updateCfuFromDefaultConfig(config);
@@ -1270,6 +1276,55 @@ public final class Constant {
         config.setProperty("hud.enableTelemetry", null);
     }
 
+    static void upgradeFrom2_14_0(XMLConfiguration config) throws ConfigurationException {
+        List<HierarchicalConfiguration> existingTagScanners =
+                config.configurationsAt("pscans.autoTagScanners.scanner");
+        List<Object> existingNames = config.getList("pscans.autoTagScanners.scanner.name");
+
+        String leadingAutoTagScannersKey = "pscans.autoTagScanners.scanner(";
+        String trailingNameKey = ").name";
+        String trailingTypeKey = ").type";
+        String trailingConfigKey = ").config";
+        String trailingResHeadRegex = ").resHeadRegex";
+        String trailingEnableKey = ").enabled";
+
+        int index = existingTagScanners.size(); // Size is next index due to 0th start
+
+        if (!existingNames.contains("json_extended")) {
+            config.addProperty(
+                    leadingAutoTagScannersKey + index + trailingNameKey, "json_extended");
+            config.addProperty(leadingAutoTagScannersKey + index + trailingTypeKey, "TAG");
+            config.addProperty(leadingAutoTagScannersKey + index + trailingConfigKey, "JSON");
+            config.addProperty(
+                    leadingAutoTagScannersKey + index + trailingResHeadRegex,
+                    "content-type:\\s{0,10}.{1,20}\\/.{0,100}json");
+            config.addProperty(leadingAutoTagScannersKey + index + trailingEnableKey, false);
+            ++index;
+        }
+
+        if (!existingNames.contains("response_yaml")) {
+            config.addProperty(
+                    leadingAutoTagScannersKey + index + trailingNameKey, "response_yaml");
+            config.addProperty(leadingAutoTagScannersKey + index + trailingTypeKey, "TAG");
+            config.addProperty(leadingAutoTagScannersKey + index + trailingConfigKey, "YAML");
+            config.addProperty(
+                    leadingAutoTagScannersKey + index + trailingResHeadRegex,
+                    "content-type:\\s{0,10}.{1,20}\\/.{0,100}yaml");
+            config.addProperty(leadingAutoTagScannersKey + index + trailingEnableKey, false);
+            ++index;
+        }
+
+        if (!existingNames.contains("response_xml")) {
+            config.addProperty(leadingAutoTagScannersKey + index + trailingNameKey, "response_xml");
+            config.addProperty(leadingAutoTagScannersKey + index + trailingTypeKey, "TAG");
+            config.addProperty(leadingAutoTagScannersKey + index + trailingConfigKey, "XML");
+            config.addProperty(
+                    leadingAutoTagScannersKey + index + trailingResHeadRegex,
+                    "content-type:\\s{0,10}.{1,20}\\/.{0,100}xml");
+            config.addProperty(leadingAutoTagScannersKey + index + trailingEnableKey, false);
+        }
+    }
+
     private static void updateDefaultInt(
             XMLConfiguration config, String key, int oldDefault, int newDefault) {
         try {
@@ -1534,7 +1589,7 @@ public final class Constant {
         String manifestPath =
                 classPath.substring(0, classPath.lastIndexOf("!") + 1) + "/META-INF/MANIFEST.MF";
         try {
-            return new Manifest(new URL(manifestPath).openStream());
+            return new Manifest(new URI(manifestPath).toURL().openStream());
         } catch (Exception e) {
             // Ignore
             return null;
